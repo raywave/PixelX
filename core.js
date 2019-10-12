@@ -71,6 +71,7 @@ module.exports = class PixelBot {
               const funnyReplacesHs = {
                 'window.': '',
                 global: 'undefined',
+                "=== 'object'": "!== 'object'",
               }
               for (const replace of Object.keys(funnyReplacesHs)) {
                 code = store.replaceAll(code, replace, funnyReplacesHs[replace])
@@ -104,6 +105,7 @@ module.exports = class PixelBot {
     })
 
     this.ws.on('close', () => {
+      console.log('> Exit')
       this.ws = null
       this.wsloaded = false
     })
@@ -115,15 +117,22 @@ module.exports = class PixelBot {
 
     const color = store.pixelDataToDraw[ind]
     const coords = ind.split(',')
-    if (store.data && store.data[ind] && store.data[ind] === color) return
 
-    await this.send(color, this.SEND_PIXEL, coords[0], coords[1], store)
-    if (store.data) {
-      store.data[ind] = color
+    if (!store.data || !store.data[ind] || !store.data[ind] === color) {
+      await this.send(color, this.SEND_PIXEL, coords[0], coords[1], store)
+      if (store.data) {
+        store.data[ind] = color
+      }
+
+      if (keys.length < 1) {
+        console.error('! Проблемы с защитой ВКонтакте.')
+      }
+      setTimeout(() => {
+        this.sendPixel(store)
+      }, 60000)
+    } else {
+      await this.sendPixel(store)
     }
-    setTimeout(() => {
-      this.sendPixel(store)
-    }, 60000)
   }
 
   async startWork (store) {
