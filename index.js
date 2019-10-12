@@ -8,7 +8,7 @@ const Store = require('./store')
   for (const link of wssLinks) {
     await new Promise((resolve) => setTimeout(resolve, 3000)).then((r) => {
       const bot = new PixelBot(link, Store)
-      bot && console.log('> Bot started.')
+      bot && console.log('> Бот запущен.')
     })
   }
 })()

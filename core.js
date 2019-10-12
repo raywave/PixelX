@@ -1,6 +1,5 @@
-const WS = require('ws')
-const { createCanvas, Image } = require('canvas')
-const { image } = require('./config.json')
+const WebSocket = require('ws')
+const axios = require('axios')
 
 module.exports = class PixelBot {
   constructor (wsslink, store) {
@@ -13,97 +12,94 @@ module.exports = class PixelBot {
     this.SIZE = this.MAX_WIDTH * this.MAX_HEIGHT
     this.SEND_PIXEL = 0
 
-    this.pixelDataToDraw = {}
-    this.initPixelCanvas = {}
-
-    this.canvas = null
-    this.img = null
     this.ws = null
     this.wsloaded = false
     this.busy = false
 
-    this.colors = [
-      [255, 255, 255, 0],
-      [0, 0, 0, 4],
-      [58, 175, 255, 5],
-      [255, 0, 0, 11],
-    ]
-
     this.isStartedWork = false
-    this.thatsMy = false
+    this.rCode = null
 
     this.load(store).catch(console.error)
   }
 
   async load (store) {
-    this.canvas = createCanvas()
-    const ctx = this.canvas.getContext('2d')
-
-    this.img = new Image()
-    this.img.onload = () => {
-      console.log('> Image was loaded.')
-      this.canvas.width = this.img.width
-      this.canvas.height = this.img.height
-      ctx.drawImage(this.img, 0, 0, this.canvas.width, this.canvas.height)
-
-      const imd = ctx.getImageData(0, 0, this.img.width, this.img.height).data
-      for (let i = 0; i < imd.length; i += 4) {
-        const x = (i / 4) % this.img.width + 1
-        const y = ~~((i / 4) / this.img.width) + 1
-
-        const color = [imd[i], imd[i + 1], imd[i + 2]]
-        if (imd[i + 3] < 1) {
-          continue
-        } else {
-          for (const colord of this.colors) {
-            if (color[0] === colord[0] && color[1] === colord[1] && color[2] === colord[2]) {
-              this.pixelDataToDraw[[x, y]] = colord[3]
-              break
-            }
-          }
-        }
-      }
-      console.log('> Pixels was loaded.')
-      this.startWork(store)
-    }
-
-    this.img.src = `${image}?${parseInt(new Date().getTime() / 1000)});`
+    this.startWork(store)
   }
 
-  initWs (store) {
-    this.ws = new WS(this.wsslink)
+  async resolveCode (store) {
+    try {
+      const url = new URL(this.wsslink)
+      const result = await axios.get('https://pixel2019.vkforms.ru/api/start', {
+        headers: {
+          'X-vk-sign': url.search,
+        },
+      })
+
+      let code = result.data.response.code
+      // eslint-disable-next-line no-eval
+      code = eval(store.replaceAll(code, 'window.', ''))
+      this.wsslink = this.wsslink.replace(/&c=.*/g, `&c=${code}`)
+      console.log(`> Код решён: ${code}`)
+    } catch (e) {
+      console.log('> Произошла ошибка при решении кода.', e)
+    }
+  }
+
+  async initWs (store) {
+    await this.resolveCode(store)
+    this.ws = new WebSocket(this.wsslink)
 
     this.ws.on('open', async () => {
-      console.log('> Connected to WebSocket.')
-      this.wsloaded = true
+      console.log('> Подключение к WebSocket было успешным.')
     })
 
     this.ws.on('message', async (event) => {
       while (this.busy) {
         await this.sleep(500)
       }
+
       try {
         this.busy = true
-        if (!store.initPixelCanvas) {
-          store.initPixelCanvas = {}
-          this.thatsMy = true
-        }
 
-        if (this.thatsMy) {
+        if (typeof event === 'string') {
+          try {
+            const a = JSON.parse(event)
+            if (a.v) {
+              const codeRaw = a.v.code
+
+              let code = codeRaw
+              const funnyReplacesHs = {
+                'window.': '',
+                global: 'undefined',
+              }
+              for (const replace of Object.keys(funnyReplacesHs)) {
+                code = store.replaceAll(code, replace, funnyReplacesHs[replace])
+              }
+
+              // eslint-disable-next-line no-eval
+              this.rCode = eval(code)
+              this.ws.send('R' + this.rCode)
+              this.wsloaded = true
+              console.log(`> Код-R решён: R${this.rCode}`)
+            }
+          } catch (e) {
+
+          }
+        } else {
           const c = this.toArrayBuffer(event)
+
           for (let d = c.byteLength / 4, e = new Int32Array(c, 0, d), f = Math.floor(d / 3), g = 0; g < f; g++) {
             const h = e[3 * g], k = this.unpack(h), l = k.x, m = k.y, n = k.color
-            store.initPixelCanvas[[l, m]] = n
+            store.data[[l, m]] = n
           }
         }
 
         if (!this.isStartedWork) {
-          this.startWork()
+          this.startWork(store)
         }
         this.busy = false
       } catch (e) {
         this.busy = false
-        console.log(e)
       }
     })
 
@@ -113,50 +109,56 @@ module.exports = class PixelBot {
     })
   }
 
-  async startWork (store) {
-    console.log('> Bot started.')
-    this.isStartedWork = true
-    for (const ind of Object.keys(this.pixelDataToDraw)) {
-      const color = this.pixelDataToDraw[ind]
-      const coords = ind.split(',')
-      if (store.initPixelCanvas && store.initPixelCanvas[ind] && store.initPixelCanvas[ind] === color) {
-        continue
-      }
+  async sendPixel (store) {
+    const keys = Object.keys(store.pixelDataToDraw)
+    const ind = keys[Math.floor(Math.random() * keys.length)] // Рандомный элемент
 
-      await this.send(color, this.SEND_PIXEL, coords[0], coords[1], store)
-      if (store.initPixelCanvas) {
-        store.initPixelCanvas[ind] = color
-      }
+    const color = store.pixelDataToDraw[ind]
+    const coords = ind.split(',')
+    if (store.data && store.data[ind] && store.data[ind] === color) return
 
-      await this.sleep(60000)
+    await this.send(color, this.SEND_PIXEL, coords[0], coords[1], store)
+    if (store.data) {
+      store.data[ind] = color
     }
-    this.isStartedWork = false
+    setTimeout(() => {
+      this.sendPixel(store)
+    }, 60000)
+  }
+
+  async startWork (store) {
+    console.log('> Производится запуск скрипта.')
+    this.isStartedWork = true
+    await store.load()
+    await this.sendPixel(store)
   }
 
   async send (colorId, flag, x, y, store) {
     const c = new ArrayBuffer(4)
     new Int32Array(c, 0, 1)[0] = this.pack(colorId, flag, x, y)
     if (!this.ws) {
-      this.initWs(store)
+      await this.initWs(store)
     }
     while (!this.wsloaded) {
       await this.sleep(500)
     }
     this.ws.send(c)
-    console.log(`> Установлен пиксель на [${x}, ${y}] (${colorId})`)
+    console.log(`> Был раскрашен пиксель [${x}, ${y}] (${colorId})`)
   }
 
   pack (colorId, flag, x, y) {
-    return parseInt(x, 10) + parseInt(y, 10) * this.MAX_WIDTH + this.SIZE * (parseInt(colorId, 10) + parseInt(flag, 10) * this.MAX_COLOR_ID)
+    const b = parseInt(colorId, 10) + parseInt(flag, 10) * this.MAX_COLOR_ID
+    return parseInt(x, 10) + parseInt(y, 10) * this.MAX_WIDTH + this.SIZE * b
   }
 
   unpack (b) {
-    const d = (b -= Math.floor(b / this.SIZE) * this.SIZE) % this.MAX_WIDTH
+    const c = Math.floor(b / this.SIZE)
+    const d = (b -= c * this.SIZE) % this.MAX_WIDTH
     return {
       x: d,
       y: (b - d) / this.MAX_WIDTH,
-      color: Math.floor(b / this.SIZE) % this.MAX_COLOR_ID,
-      flag: Math.floor(Math.floor(b / this.SIZE) / this.MAX_COLOR_ID),
+      color: c % this.MAX_COLOR_ID,
+      flag: Math.floor(c / this.MAX_COLOR_ID),
     }
   }
 
@@ -171,5 +173,24 @@ module.exports = class PixelBot {
       view[i] = buf[i]
     }
     return ab
+  }
+
+  chunkString (str, length) {
+    return str.match(new RegExp('.{1,' + length + '}', 'g'))
+  }
+
+  shuffle (array) {
+    let currentIndex = array.length, temporaryValue, randomIndex
+
+    while (currentIndex !== 0) {
+      randomIndex = Math.floor(Math.random() * currentIndex)
+      currentIndex -= 1
+
+      temporaryValue = array[currentIndex]
+      array[currentIndex] = array[randomIndex]
+      array[randomIndex] = temporaryValue
+    }
+
+    return array
   }
 }

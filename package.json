@@ -9,8 +9,9 @@
     "lint": "eslint ."
   },
   "dependencies": {
-    "cross-env": "^6.0.3",
+    "axios": "^0.19.0",
     "canvas": "^2.6.0",
+    "cross-env": "^6.0.3",
     "ws": "^7.1.2"
   },
   "devDependencies": {
