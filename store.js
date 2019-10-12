@@ -1,0 +1,3 @@
+module.exports = {
+  initPixelCanvas: null,
+}

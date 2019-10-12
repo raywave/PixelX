@@ -1,0 +1,36 @@
+{
+  "name": "pixelbattle-2019",
+  "version": "1.0.0",
+  "description": "Pixel Battle [2019] VKontakte",
+  "main": "index.js",
+  "scripts": {
+    "dev": "cross-env NODE_ENV=development DEBUG=pixelbattle-2019:* node --nolazy --inspect index.js",
+    "start": "cross-env NODE_ENV=production node index.js",
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "cross-env": "^6.0.3",
+    "canvas": "^2.6.0",
+    "ws": "^7.1.2"
+  },
+  "devDependencies": {
+    "eslint": "^6.5.1",
+    "eslint-config-standard": "^14.1.0",
+    "eslint-plugin-import": "^2.17.1",
+    "eslint-plugin-node": "^10.0.0",
+    "eslint-plugin-promise": "^4.1.1",
+    "eslint-plugin-standard": "^4.0.0",
+    "husky": "^3.0.8"
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "npm run lint",
+      "pre-push": "npm run lint"
+    }
+  },
+  "engines": {
+    "node": "^8 || ^10 || ^11 || ^12"
+  },
+  "author": "aeonixlegit",
+  "license": "MIT"
+}
