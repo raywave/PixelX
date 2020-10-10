@@ -1,10 +1,10 @@
 {
-  "name": "pixelbattle-2019",
+  "name": "pixelbattle-2020",
   "version": "1.0.0",
-  "description": "Pixel Battle [2019] VKontakte",
+  "description": "Pixel Battle [2020] VKontakte",
   "main": "index.js",
   "scripts": {
-    "dev": "cross-env NODE_ENV=development DEBUG=pixelbattle-2019:* node --nolazy --inspect index.js",
+    "dev": "cross-env NODE_ENV=development DEBUG=pixelbattle-2020:* node --nolazy --inspect index.js",
     "start": "cross-env NODE_ENV=production node index.js",
     "lint": "eslint ."
   },
@@ -30,8 +30,8 @@
     }
   },
   "engines": {
-    "node": "^8 || ^10 || ^11 || ^12"
+    "node": "^8 || ^10 || ^11 || ^12 || ^13 || ^14"
   },
-  "author": "aeonixlegit",
+  "author": "hikinight",
   "license": "MIT"
 }
