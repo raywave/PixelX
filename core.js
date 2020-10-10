@@ -26,27 +26,7 @@ module.exports = class PixelBot {
     this.startWork(store)
   }
 
-  async resolveCode (store) {
-    try {
-      const url = new URL(this.wsslink)
-      const result = await axios.get('https://pixel-dev.w84.vkforms.ru/api/start', {
-        headers: {
-          'X-vk-sign': url.search,
-        },
-      })
-
-      let code = result.data.response.code
-      // eslint-disable-next-line no-eval
-      code = eval(store.replaceAll(code, 'window.', ''))
-      this.wsslink = this.wsslink.replace(/&c=.*/g, `&c=${code}`)
-      console.log(`> Код решён: ${code}`)
-    } catch (e) {
-      console.log('> Произошла ошибка при решении кода.', e)
-    }
-  }
-
   async initWs (store) {
-    await this.resolveCode(store)
     this.ws = new WebSocket(this.wsslink)
 
     this.ws.on('open', async () => {
