@@ -1,16 +1,14 @@
 # PixelX
 
-PixelX - бот, позволяющий автоматически играть в PixelBattle 2019 ВКонтакте с нескольких ссылок.
+PixelX - бот, позволяющий автоматически играть в PixelBattle 2020 (2019) ВКонтакте с нескольких ссылок.
 
-[![Группа ВКонтакте](https://img.shields.io/badge/Группа-ВКонтакте-yellow.svg)](https://vk.com/aeonix)
-[![Канал Telegram](https://img.shields.io/badge/Канал-Telegram-yellow.svg)](https://t.me/aeonixlegitistyping)
-[![Донат разработчику](https://img.shields.io/badge/Поддержать-разработчика-orange.svg)](https://qiwi.com/n/aeonix)
+[![Канал Telegram](https://img.shields.io/badge/Канал-Telegram-yellow.svg)](https://t.me/hikinightim)
 
 ## Установка
 
 1) Для начала надо установить в систему [Node.JS версии 8 или выше](https://nodejs.org/) (установщик для **Windows** - [Node.js v10.16.3 LTS](https://nodejs.org/dist/v10.16.3/node-v10.16.3-x64.msi)), без этого бот просто не сможет работать.
 
-2) После скачивания и установки Node.JS, скачиваем самого бота нажав на [эту ссылку](https://github.com/aeonixlegit/PixelX/archive/master.zip).
+2) После скачивания и установки Node.JS, скачиваем самого бота нажав на [эту ссылку](https://github.com/hikinight/PixelX/archive/master.zip).
 
 3) Распаковываем скачанный архив с файлами бота в *любую* папку и заходим в неё.
 
