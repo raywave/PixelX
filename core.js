@@ -1,5 +1,4 @@
 const WebSocket = require('ws')
-const axios = require('axios')
 
 module.exports = class PixelBot {
   constructor (wsslink, store) {
@@ -13,7 +12,6 @@ module.exports = class PixelBot {
     this.SEND_PIXEL = 0
 
     this.ws = null
-    this.wsloaded = false
     this.busy = false
 
     this.isStartedWork = false
@@ -39,6 +37,7 @@ module.exports = class PixelBot {
       }
 
       try {
+        if (typeof event === 'string') return
         this.busy = true
 
         const c = this.toArrayBuffer(event)
@@ -47,7 +46,6 @@ module.exports = class PixelBot {
           const h = e[3 * g], k = this.unpack(h), l = k.x, m = k.y, n = k.color
           store.data[[l, m]] = n
         }
-
 
         if (!this.isStartedWork) {
           this.startWork(store)
@@ -61,32 +59,27 @@ module.exports = class PixelBot {
     this.ws.on('close', () => {
       console.log('> Exit')
       this.ws = null
-      this.wsloaded = false
     })
   }
 
   async sendPixel (store) {
     const keys = Object.keys(store.pixelDataToDraw)
-    const ind = keys[Math.floor(Math.random() * keys.length)] // Рандомный элемент
+    const ind = keys[Math.floor(Math.random() * keys.length)]
 
     const color = store.pixelDataToDraw[ind]
     const coords = ind.split(',')
 
-    if (!store.data || !store.data[ind] || !store.data[ind] === color) {
-      await this.send(color, this.SEND_PIXEL, coords[0], coords[1], store)
-      if (store.data) {
-        store.data[ind] = color
-      }
-
-      if (keys.length < 1) {
-        console.error('! Проблемы с защитой ВКонтакте.')
-      }
-      setTimeout(() => {
-        this.sendPixel(store)
-      }, 60000)
-    } else {
-      await this.sendPixel(store)
+    if (store.data && store.data[ind] && store.data[ind] === color) {
+      return this.sendPixel(store)
     }
+
+    await this.send(color, this.SEND_PIXEL, coords[0], coords[1], store)
+    if (store.data) {
+      store.data[ind] = color
+    }
+    setTimeout(() => {
+      this.sendPixel(store)
+    }, 60000)
   }
 
   async startWork (store) {
@@ -102,9 +95,12 @@ module.exports = class PixelBot {
     if (!this.ws) {
       await this.initWs(store)
     }
-    while (!this.wsloaded) {
-      await this.sleep(500)
+
+    if (this.ws.readyState !== 1) {
+      await this.sleep(100)
+      return this.send(colorId, flag, x, y, store)
     }
+
     this.ws.send(c)
     console.log(`> Был раскрашен пиксель [${x}, ${y}] (${colorId})`)
   }
