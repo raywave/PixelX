@@ -30,6 +30,7 @@ const decode_colors = {
   o: 24,
   p: 25,
 }
+
 const colors = [
   [255, 255, 255, 0], // #FFFFFF
   [194, 194, 194, 1], // #C2C2C2
@@ -100,7 +101,7 @@ module.exports = {
   async loadData () {
     this.data = {}
 
-    const startPixels = await axios.get('https://pixel2019.vkforms.ru/api/data/' + randomInteger(1, 19))
+    const startPixels = await axios.get('https://pixel-dev.w84.vkforms.ru/api/data/' + randomInteger(1, 19))
     let chunkedString = chunkString(startPixels.data, 1590)
     chunkedString = chunkedString.slice(0, chunkedString.length - 1)
     let y = 0

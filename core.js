@@ -29,7 +29,7 @@ module.exports = class PixelBot {
   async resolveCode (store) {
     try {
       const url = new URL(this.wsslink)
-      const result = await axios.get('https://pixel2019.vkforms.ru/api/start', {
+      const result = await axios.get('https://pixel-dev.w84.vkforms.ru/api/start', {
         headers: {
           'X-vk-sign': url.search,
         },
@@ -61,39 +61,13 @@ module.exports = class PixelBot {
       try {
         this.busy = true
 
-        if (typeof event === 'string') {
-          try {
-            const a = JSON.parse(event)
-            if (a.v) {
-              const codeRaw = a.v.code
+        const c = this.toArrayBuffer(event)
 
-              let code = codeRaw
-              const funnyReplacesHs = {
-                'window.': '',
-                global: 'undefined',
-                "=== 'object'": "!== 'object'",
-              }
-              for (const replace of Object.keys(funnyReplacesHs)) {
-                code = store.replaceAll(code, replace, funnyReplacesHs[replace])
-              }
-
-              // eslint-disable-next-line no-eval
-              this.rCode = eval(code)
-              this.ws.send('R' + this.rCode)
-              this.wsloaded = true
-              console.log(`> Код-R решён: R${this.rCode}`)
-            }
-          } catch (e) {
-
-          }
-        } else {
-          const c = this.toArrayBuffer(event)
-
-          for (let d = c.byteLength / 4, e = new Int32Array(c, 0, d), f = Math.floor(d / 3), g = 0; g < f; g++) {
-            const h = e[3 * g], k = this.unpack(h), l = k.x, m = k.y, n = k.color
-            store.data[[l, m]] = n
-          }
+        for (let d = c.byteLength / 4, e = new Int32Array(c, 0, d), f = Math.floor(d / 3), g = 0; g < f; g++) {
+          const h = e[3 * g], k = this.unpack(h), l = k.x, m = k.y, n = k.color
+          store.data[[l, m]] = n
         }
+
 
         if (!this.isStartedWork) {
           this.startWork(store)
