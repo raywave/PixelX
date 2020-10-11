@@ -34,6 +34,8 @@ module.exports = class PixelBot {
       this.log('Подключение к WebSocket было успешным.')
     })
 
+    this.ws.on('error', () => {})
+
     this.ws.on('message', async (event) => {
       while (this.busy) {
         await this.sleep(500)
