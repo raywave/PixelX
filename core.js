@@ -1,12 +1,14 @@
 const WebSocket = require('ws')
 
 module.exports = class PixelBot {
-  constructor (wsslink, store) {
+  constructor (wsslink, store, index, totalBots) {
     this.wsslink = wsslink
     this.MAX_WIDTH = 1590
     this.MAX_HEIGHT = 400
     this.MAX_COLOR_ID = 25
     this.MIN_COLOR_ID = 0
+    this.index = index
+    this.totalBots = totalBots
 
     this.SIZE = this.MAX_WIDTH * this.MAX_HEIGHT
     this.SEND_PIXEL = 0
@@ -15,7 +17,6 @@ module.exports = class PixelBot {
     this.busy = false
 
     this.isStartedWork = false
-    this.rCode = null
 
     this.load(store).catch(console.error)
   }
@@ -64,28 +65,37 @@ module.exports = class PixelBot {
 
   async sendPixel (store) {
     const keys = Object.keys(store.pixelDataToDraw)
-    const ind = keys[Math.floor(Math.random() * keys.length)]
 
-    const color = store.pixelDataToDraw[ind]
-    const coords = ind.split(',')
+    const pixelsToDraw = []
 
-    if (store.data && store.data[ind] && store.data[ind] === color) {
-      return this.sendPixel(store)
+    for (let i = 0; i < keys.length; i++) {
+      const index = keys[i]
+      const colorWeNeed = store.pixelDataToDraw[index]
+      if (store.data[index] !== colorWeNeed) {
+        pixelsToDraw.push([index, colorWeNeed])
+      }
     }
 
-    await this.send(color, this.SEND_PIXEL, coords[0], coords[1], store)
-    if (store.data) {
-      store.data[ind] = color
+    if (pixelsToDraw.length > 0) {
+      if (this.index >= pixelsToDraw.length - 1) {
+        await this.sleep(1000)
+        return this.sendPixel(store)
+      }
+      const [coords, color] = pixelsToDraw[this.index]
+      const [x, y] = coords.split(',')
+      await this.send(color, this.SEND_PIXEL, x, y, store)
+      if (store.data) {
+        store.data[coords] = color
+      }
+      setTimeout(() => {
+        this.sendPixel(store)
+      }, 60000)
     }
-    setTimeout(() => {
-      this.sendPixel(store)
-    }, 60000)
   }
 
   async startWork (store) {
     console.log('> Производится запуск скрипта.')
     this.isStartedWork = true
-    await store.load()
     await this.sendPixel(store)
   }
 

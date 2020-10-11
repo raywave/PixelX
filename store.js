@@ -91,7 +91,7 @@ module.exports = {
 
   async load () {
     const nowTime = parseInt(+new Date() / 1000)
-    if (nowTime - this.lastUpdate > 60) {
+    if (nowTime - this.lastUpdate > 10) {
       this.lastUpdate = nowTime
       await this.loadData()
       await this.loadImg()
@@ -115,7 +115,7 @@ module.exports = {
       }
       y += 1
     }
-    console.log('> Состояние полотна обновлено,')
+    console.log('> Состояние полотна обновлено.')
   },
 
   async loadImg () {
@@ -128,10 +128,11 @@ module.exports = {
     this.canvas.height = img.height
     ctx.drawImage(img, 0, 0, this.canvas.width, this.canvas.height)
 
-    var imd = ctx.getImageData(0, 0, img.width, img.height).data
-    for (var i = 0; i < imd.length; i += 4) {
-      var x = (i / 4) % img.width + 1,
-        y = ~~((i / 4) / img.width) + 1
+    const imd = ctx.getImageData(0, 0, img.width, img.height).data
+    const pixelDataToDraw = []
+    for (let i = 0; i < imd.length; i += 4) {
+      const x = (i / 4) % img.width + 1
+      const y = ~~((i / 4) / img.width) + 1
 
       const color = [imd[i], imd[i + 1], imd[i + 2]]
       if (imd[i + 3] < 1) {
@@ -139,12 +140,13 @@ module.exports = {
       } else {
         for (const colord of colors) {
           if (color[0] === colord[0] && color[1] === colord[1] && color[2] === colord[2]) {
-            this.pixelDataToDraw[[x, y]] = colord[3]
+            pixelDataToDraw[[x, y]] = colord[3]
             break
           }
         }
       }
     }
+    this.pixelDataToDraw = pixelDataToDraw
     console.log('> Шаблон обнолен.')
   },
 

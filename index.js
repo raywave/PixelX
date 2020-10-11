@@ -5,10 +5,10 @@ const Store = require('./store')
 
 ;(async () => {
   console.log('> Производится запуск [PixelX - github.com/aeonixlegit/PixelX]')
+  await Store.load()
+  setInterval(() => Store.load(), 10000)
   for (const link of wssLinks) {
-    await new Promise((resolve) => setTimeout(resolve, 3000)).then((r) => {
-      const bot = new PixelBot(link, Store)
-      bot && console.log('> Бот запущен.')
-    })
+    const bot = new PixelBot(link, Store, wssLinks.indexOf(link), wssLinks.length)
+    bot && console.log('> Бот запущен.')
   }
 })()
