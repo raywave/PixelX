@@ -1,71 +1,38 @@
-const axios = require('axios')
+const fetch = require('node-fetch')
 const { createCanvas, Image } = require('canvas')
 const { image } = require('./config.json')
 
-const decode_colors = {
-  0: 0,
-  1: 1,
-  2: 2,
-  3: 3,
-  4: 4,
-  5: 5,
-  6: 6,
-  7: 7,
-  8: 8,
-  9: 9,
-  a: 10,
-  b: 11,
-  c: 12,
-  d: 13,
-  e: 14,
-  f: 15,
-  g: 16,
-  h: 17,
-  i: 18,
-  j: 19,
-  k: 20,
-  l: 21,
-  m: 22,
-  n: 23,
-  o: 24,
-  p: 25,
-}
-
+// Thanks to @nitreojs (nitrojs)
 const colors = [
-  [255, 255, 255, 0], // #FFFFFF
-  [194, 194, 194, 1], // #C2C2C2
-  [133, 133, 133, 2], // #858585
-  [71, 71, 71, 3], // #474747
-  [0, 0, 0, 4], // #000000
-  [58, 175, 255, 5], // #3AAFFF
-  [113, 170, 235, 6], // #71AAEB
-  [74, 118, 168, 7], // #4a76a8
-  [7, 75, 243, 8], // #074BF3
-  [94, 48, 235, 9], // #5E30EB
-  [255, 108, 91, 10], // #FF6C5B
-  [254, 37, 0, 11], // #FE2500
-  [255, 33, 139, 12], // #FF218B
-  [153, 36, 79, 13], // #99244F
-  [77, 44, 156, 14], // #4D2C9C
-  [255, 207, 74, 15], // #FFCF4A
-  [254, 180, 63, 16], // #FEB43F
-  [254, 134, 72, 17], // #FE8648
-  [255, 91, 54, 18], // #FF5B36
-  [218, 81, 0, 19], // #DA5100
-  [148, 224, 68, 20], // #94E044
-  [92, 191, 13, 21], // #5CBF0D
-  [195, 209, 23, 22], // #C3D117
-  [252, 199, 0, 23], // #FCC700
-  [211, 131, 1, 24], // #D38301
+  [255, 255, 255, 0, '#FFFFFF'],
+  [194, 194, 194, 1, '#C2C2C2'],
+  [133, 133, 133, 2, '#858585'],
+  [71, 71, 71, 3, '#474747'],
+  [0, 0, 0, 4, '#000000'],
+  [58, 175, 255, 5, '#3AAFFF'],
+  [113, 170, 235, 6, '#71AAEB'],
+  [74, 118, 168, 7, '#4A76A8'],
+  [7, 75, 243, 8, '#074BF3'],
+  [94, 48, 235, 9, '#5E30EB'],
+  [255, 108, 91, 10, '#FF6C5B'],
+  [254, 37, 0, 11, '#FE2500'],
+  [255, 33, 139, 12, '#FF218B'],
+  [153, 36, 79, 13, '#99244F'],
+  [77, 44, 156, 14, '#4D2C9C'],
+  [255, 207, 74, 15, '#FFCF4A'],
+  [254, 180, 63, 16, '#FEB43F'],
+  [254, 134, 72, 17, '#FE8648'],
+  [255, 91, 54, 18, '#FF5B36'],
+  [218, 81, 0, 19, '#DA5100'],
+  [148, 224, 68, 20, '#94E044'],
+  [92, 191, 13, 21, '#5CBF0D'],
+  [195, 209, 23, 22, '#C3D117'],
+  [252, 199, 0, 23, '#FCC700'],
+  [211, 131, 1, 24, '#D38301'],
 ]
 
 const chunkString = function (str, length) {
   return str.match(new RegExp('.{1,' + length + '}', 'g'))
-}
-
-const randomInteger = function (min, max) {
-  const rand = min - 0.5 + Math.random() * (max - min + 1)
-  return Math.round(rand)
 }
 
 const loadImage = function (src) {
@@ -91,7 +58,7 @@ module.exports = {
 
   async load () {
     const nowTime = parseInt(+new Date() / 1000)
-    if (nowTime - this.lastUpdate > 10) {
+    if (nowTime - this.lastUpdate > 60) {
       this.lastUpdate = nowTime
       await this.loadData()
       await this.loadImg()
@@ -101,21 +68,23 @@ module.exports = {
   async loadData () {
     this.data = {}
 
-    const startPixels = await axios.get('https://pixel-dev.w84.vkforms.ru/api/data/' + randomInteger(1, 19))
-    let chunkedString = chunkString(startPixels.data, 1590)
+    const response = await fetch(`https://pixel-dev.w84.vkforms.ru/api/data?ts=${new Date().getMinutes()}-${new Date().getHours()}`)
+    const text = await response.text()
+
+    let chunkedString = chunkString(text, 1590)
     chunkedString = chunkedString.slice(0, chunkedString.length - 1)
     let y = 0
     for (const line of chunkedString) {
       let x = 0
       const lined = line.split('')
       for (const pixel of lined) {
-        const color = decode_colors[pixel]
+        const color = Number.parseInt(pixel, 16)
         this.data[[x, y]] = color
         x += 1
       }
       y += 1
     }
-    console.log('> Состояние полотна обновлено.')
+    console.log('\x1b[33m[STORE]\x1b[0m Состояние полотна обновлено.')
   },
 
   async loadImg () {
@@ -147,7 +116,7 @@ module.exports = {
       }
     }
     this.pixelDataToDraw = pixelDataToDraw
-    console.log('> Шаблон обнолен.')
+    console.log('\x1b[33m[STORE]\x1b[0m Шаблон обновлен.')
   },
 
 }

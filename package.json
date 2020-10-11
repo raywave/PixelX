@@ -9,9 +9,9 @@
     "lint": "eslint ."
   },
   "dependencies": {
-    "axios": "^0.20.0",
     "canvas": "^2.6.0",
     "cross-env": "^6.0.3",
+    "node-fetch": "^2.6.1",
     "ws": "^7.1.2"
   },
   "devDependencies": {

@@ -17,19 +17,21 @@ module.exports = class PixelBot {
     this.busy = false
 
     this.isStartedWork = false
+    this.noPixelsBefore = false
+    this.store = store
 
-    this.load(store).catch(console.error)
+    this.load().catch(console.error)
   }
 
-  async load (store) {
-    this.startWork(store)
+  async load () {
+    this.startWork()
   }
 
-  async initWs (store) {
+  async initWs () {
     this.ws = new WebSocket(this.wsslink)
 
     this.ws.on('open', async () => {
-      console.log('> Подключение к WebSocket было успешным.')
+      this.log('Подключение к WebSocket было успешным.')
     })
 
     this.ws.on('message', async (event) => {
@@ -45,11 +47,11 @@ module.exports = class PixelBot {
 
         for (let d = c.byteLength / 4, e = new Int32Array(c, 0, d), f = Math.floor(d / 3), g = 0; g < f; g++) {
           const h = e[3 * g], k = this.unpack(h), l = k.x, m = k.y, n = k.color
-          store.data[[l, m]] = n
+          this.store.data[[l, m]] = n
         }
 
         if (!this.isStartedWork) {
-          this.startWork(store)
+          this.startWork()
         }
         this.busy = false
       } catch (e) {
@@ -57,62 +59,78 @@ module.exports = class PixelBot {
       }
     })
 
+    this.ws.on('error', (err) => console.error(err))
+
     this.ws.on('close', () => {
-      console.log('> Exit')
+      this.log('Подключение к WebSocket было закрыто.')
       this.ws = null
     })
   }
 
-  async sendPixel (store) {
-    const keys = Object.keys(store.pixelDataToDraw)
+  async sendPixel () {
+    const keys = Object.keys(this.store.pixelDataToDraw)
 
     const pixelsToDraw = []
 
     for (let i = 0; i < keys.length; i++) {
       const index = keys[i]
-      const colorWeNeed = store.pixelDataToDraw[index]
-      if (store.data[index] !== colorWeNeed) {
+      const colorWeNeed = this.store.pixelDataToDraw[index]
+      if (this.store.data[index] !== colorWeNeed) {
         pixelsToDraw.push([index, colorWeNeed])
       }
     }
 
     if (pixelsToDraw.length > 0) {
-      if (this.index >= pixelsToDraw.length - 1) {
+      if (this.index >= pixelsToDraw.length - 1 && !this.noPixelsBefore) {
+        this.noPixelsBefore = true
         await this.sleep(1000)
-        return this.sendPixel(store)
+        return this.sendPixel()
       }
-      const [coords, color] = pixelsToDraw[this.index]
+      const [coords, color] = pixelsToDraw[this.noPixelsBefore ? Math.max(pixelsToDraw.length - 1, 0) : this.index]
+      this.noPixelsBefore = false
       const [x, y] = coords.split(',')
-      await this.send(color, this.SEND_PIXEL, x, y, store)
-      if (store.data) {
-        store.data[coords] = color
+      if (this.store.data) {
+        this.store.data[coords] = color
       }
+      await this.send(color, this.SEND_PIXEL, x, y)
       setTimeout(() => {
-        this.sendPixel(store)
+        this.sendPixel()
       }, 60000)
+    } else {
+      await this.store.load()
+      await this.sleep(1000)
+      return this.sendPixel()
     }
   }
 
-  async startWork (store) {
-    console.log('> Производится запуск скрипта.')
-    this.isStartedWork = true
-    await this.sendPixel(store)
+  // Thanks to @nitreojs (nitrojs)
+  log (text) {
+    console.log(`\x1b[33m[#${this.index}]\x1b[0m ${text}`)
   }
 
-  async send (colorId, flag, x, y, store) {
-    const c = new ArrayBuffer(4)
-    new Int32Array(c, 0, 1)[0] = this.pack(colorId, flag, x, y)
+  async startWork () {
+    this.log('Производится запуск скрипта.')
+    this.isStartedWork = true
     if (!this.ws) {
-      await this.initWs(store)
+      await this.initWs()
+    }
+    await this.sendPixel()
+  }
+
+  async send (colorId, flag, x, y) {
+    if (!this.ws) {
+      await this.initWs()
     }
 
     if (this.ws.readyState !== 1) {
       await this.sleep(100)
-      return this.send(colorId, flag, x, y, store)
+      return this.send(colorId, flag, x, y)
     }
 
+    const c = new ArrayBuffer(4)
+    new Int32Array(c, 0, 1)[0] = this.pack(colorId, flag, x, y)
     this.ws.send(c)
-    console.log(`> Был раскрашен пиксель [${x}, ${y}] (${colorId})`)
+    this.log(`Был закрашен пиксель [${x}, ${y}] -> \x1b[35m${colorId}\x1b[0m`)
   }
 
   pack (colorId, flag, x, y) {
