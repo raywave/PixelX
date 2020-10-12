@@ -116,7 +116,7 @@ module.exports = {
       }
     }
     this.pixelDataToDraw = pixelDataToDraw
-    console.log('\x1b[33m[STORE]\x1b[0m Шаблон обновлен.')
+    console.log('\x1b[33m[STORE]\x1b[0m Шаблон обновлён.')
   },
 
 }
